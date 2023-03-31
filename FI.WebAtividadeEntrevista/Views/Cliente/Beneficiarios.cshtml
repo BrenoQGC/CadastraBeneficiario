@@ -1,0 +1,125 @@
+﻿@model List<WebAtividadeEntrevista.Models.BeneficiariosModel>
+
+@{
+    ViewBag.Title = "Beneficiários";
+}
+
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+        <span aria-hidden="true">&times;</span>
+    </button>
+    <h4 class="modal-title">Beneficiários</h4>
+</div>
+
+<div class="modal-body">
+    <form id="formBeneficiario" method="post">
+        <div class="form-group">
+            <label for="CPF">CPF:</label>
+            <input type="text" class="form-control" id="CPF" name="CPF" placeholder="Ex.: ___.___.___-__" maxlength="14">
+        </div>
+        <div class="form-group">
+            <label for="Nome">Nome:</label>
+            <input type="text" class="form-control" id="Nome" name="Nome">
+        </div>
+    </form>
+
+    <table class="table" id="gridBeneficiarios">
+        <tbody></tbody>
+    </table>
+</div>
+
+<div class="modal-footer">
+    <button type="button" class="btn btn-default" onclick="window.history.back()">Fechar</button>
+    <button type="button" class="btn btn-primary" id="btn-incluirBeneficiario">Incluir</button>
+</div>
+
+@section scripts {
+    <script>
+    var urlParams = new URLSearchParams(window.location.search);
+    var userId = null;
+    if (urlParams.has('id')) {
+        userId = urlParams.get('id');
+        console.log(userId);
+    }
+
+    var urlBeneficiariosList = '@Url.Action("BeneficiarioList", "Cliente")';
+    if (userId) {
+        $(function() {
+            $('#btn-incluirBeneficiario').on('click', function() {
+                var cpf = $('#CPF').val();
+                var nome = $('#Nome').val();
+
+                $.post('@Url.Action("IncluirBeneficiario", "Cliente" )', { CPF: cpf, Nome: nome, IdCliente: userId }, function(data) {
+                    $('#gridBeneficiarios').jtable('reload');
+                });
+            });
+
+            $('#gridBeneficiarios').jtable({
+                title: 'Beneficiarios',
+                paging: true,
+                pageSize: 5,
+                sorting: true,
+                defaultSorting: 'Nome ASC',
+                actions: {
+                    listAction: function(postData, jtParams) {
+                        return $.Deferred(function($dfd) {
+                            $.ajax({
+                                url: urlBeneficiariosList,
+                                type: 'POST',
+                                dataType: 'json',
+                                data: { id: userId },
+                                success: function(data) {
+                                    $dfd.resolve({
+                                        "Result": "OK",
+                                        "Records": data.Records,
+                                        "TotalRecordCount": data.TotalRecordCount
+                                    });
+                                },
+                                error: function() {
+                                    $dfd.reject();
+                                }
+                            });
+                        });
+                    }
+                },
+                fields: {
+                    Nome: {
+                        title: 'Nome',
+                        width: '50%'
+                    },
+                    CPF: {
+                        title: 'CPF',
+                        width: '35%'
+                    },
+                    Alterar: {
+                        title: '',
+                        display: function(data) {
+                            return '<button class="btn btn-primary btn-sm">Alterar</button>';
+                        }
+                    }
+                }
+            });
+
+            $('#gridBeneficiarios').jtable('load');
+        });
+    }
+    </script>
+
+
+    <script>
+
+        function formatCPF(cpf) {
+            cpf = cpf.replace(/\D/g, '');
+
+            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+            cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            console.log(cpf);
+            return cpf;
+        }
+
+        document.getElementById('CPF').addEventListener('input', function (event) {
+            event.target.value = formatCPF(event.target.value);
+        });
+    </script>
+}
